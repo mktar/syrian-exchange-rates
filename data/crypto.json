@@ -1,126 +1,77 @@
 {
-  "lastUpdate": 1767718888791,
-  "source": "https://sp-today.com/crypto",
-  "prices": [
-    {
-      "name": "1",
-      "symbol": "BitcoinBTC",
-      "price": 92612,
-      "price_syp": null
+  "lastUpdate": 1767722570789,
+  "source": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether,binancecoin,solana,ripple,dogecoin,cardano,tron,avalanche-2&vs_currencies=usd&include_24hr_change=true",
+  "fetched_at": "2026-01-06T18:02:50.789Z",
+  "prices": {
+    "AVAX": {
+      "name": "أفالانش",
+      "symbol": "AVAX",
+      "price_usd": 14.37,
+      "change_24h": 1.26,
+      "trend": "up"
     },
-    {
-      "name": "2",
-      "symbol": "EthereumETH",
-      "price": 3248.87,
-      "price_syp": null
+    "BNB": {
+      "name": "بينانس كوين",
+      "symbol": "BNB",
+      "price_usd": 894.57,
+      "change_24h": -1.3,
+      "trend": "down"
     },
-    {
-      "name": "3",
-      "symbol": "TetherUSDT",
-      "price": 0.999653,
-      "price_syp": null
+    "BTC": {
+      "name": "بيتكوين",
+      "symbol": "BTC",
+      "price_usd": 91545,
+      "change_24h": -2.79,
+      "trend": "down"
     },
-    {
-      "name": "4",
-      "symbol": "XRPXRP",
-      "price": 2.29,
-      "price_syp": null
+    "ADA": {
+      "name": "كاردانو",
+      "symbol": "ADA",
+      "price_usd": 0.403233,
+      "change_24h": -2.33,
+      "trend": "down"
     },
-    {
-      "name": "5",
-      "symbol": "BNBBNB",
-      "price": 908.09,
-      "price_syp": null
+    "DOGE": {
+      "name": "دوجكوين",
+      "symbol": "DOGE",
+      "price_usd": 0.144352,
+      "change_24h": -5.49,
+      "trend": "down"
     },
-    {
-      "name": "6",
-      "symbol": "SolanaSOL",
-      "price": 138.77,
-      "price_syp": null
+    "ETH": {
+      "name": "إيثريوم",
+      "symbol": "ETH",
+      "price_usd": 3190.29,
+      "change_24h": -0.55,
+      "trend": "down"
     },
-    {
-      "name": "7",
-      "symbol": "USDCUSDC",
-      "price": 1,
-      "price_syp": null
+    "XRP": {
+      "name": "ريبل",
+      "symbol": "XRP",
+      "price_usd": 2.22,
+      "change_24h": 0.39,
+      "trend": "up"
     },
-    {
-      "name": "8",
-      "symbol": "Lido Staked EtherSTETH",
-      "price": 3244.19,
-      "price_syp": null
+    "SOL": {
+      "name": "سولانا",
+      "symbol": "SOL",
+      "price_usd": 136.72,
+      "change_24h": 0.24,
+      "trend": "up"
     },
-    {
-      "name": "9",
-      "symbol": "TRONTRX",
-      "price": 0.292207,
-      "price_syp": null
+    "USDT": {
+      "name": "تيثر",
+      "symbol": "USDT",
+      "price_usd": 0.999536,
+      "change_24h": -0.02,
+      "trend": "down"
     },
-    {
-      "name": "10",
-      "symbol": "DogecoinDOGE",
-      "price": 0.145317,
-      "price_syp": null
-    },
-    {
-      "name": "11",
-      "symbol": "CardanoADA",
-      "price": 0.409758,
-      "price_syp": null
-    },
-    {
-      "name": "12",
-      "symbol": "Figure HelocFIGR_HELOC",
-      "price": 1.03,
-      "price_syp": null
-    },
-    {
-      "name": "13",
-      "symbol": "Wrapped stETHWSTETH",
-      "price": 3970.04,
-      "price_syp": null
-    },
-    {
-      "name": "14",
-      "symbol": "Bitcoin CashBCH",
-      "price": 632.81,
-      "price_syp": null
-    },
-    {
-      "name": "15",
-      "symbol": "WhiteBIT CoinWBT",
-      "price": 57.96,
-      "price_syp": null
-    },
-    {
-      "name": "16",
-      "symbol": "Wrapped Beacon ETHWBETH",
-      "price": 3528.79,
-      "price_syp": null
-    },
-    {
-      "name": "17",
-      "symbol": "Wrapped BitcoinWBTC",
-      "price": 92298,
-      "price_syp": null
-    },
-    {
-      "name": "18",
-      "symbol": "Wrapped eETHWEETH",
-      "price": 3522.18,
-      "price_syp": null
-    },
-    {
-      "name": "19",
-      "symbol": "USDSUSDS",
-      "price": 0.999713,
-      "price_syp": null
-    },
-    {
-      "name": "20",
-      "symbol": "ChainlinkLINK",
-      "price": 13.75,
-      "price_syp": null
+    "TRX": {
+      "name": "ترون",
+      "symbol": "TRX",
+      "price_usd": 0.291473,
+      "change_24h": -0.13,
+      "trend": "down"
     }
-  ]
+  }
 }

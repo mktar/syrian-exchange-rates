@@ -1,13 +1,13 @@
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const fetch = require('node-fetch');
+const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
-// Add stealth plugin
-puppeteer.use(StealthPlugin());
-
-// Base URL
-const BASE_URL = 'https://sp-today.com';
+// Base URLs
+const BASE_URL = 'https://www.sp-today.com';
+const SOURCE_URL = `${BASE_URL}/currencies`;
+const GOLD_URL = `${BASE_URL}/gold`;
+const CRYPTO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether,binancecoin,solana,ripple,dogecoin,cardano,tron,avalanche-2&vs_currencies=usd&include_24hr_change=true';
 
 // ===== Helper Functions =====
 
@@ -29,242 +29,387 @@ function saveJSON(filepath, data) {
     console.log(`✅ Saved: ${filepath}`);
 }
 
-// Parse currency prices from page content
-function parseCurrencies(pageContent) {
-    const rates = [];
+// Output function
+function output(message, type = 'info') {
+    const emojis = {
+        'info': '📊',
+        'success': '✅',
+        'error': '❌',
+        'warning': '⚠️'
+    };
+    console.log(`${emojis[type] || ''} ${message}`);
+}
+
+// Fetch HTML with fetch (like curl in PHP)
+async function fetchHTML(url, timeout = 15000) {
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive'
+            },
+            timeout: timeout,
+            compress: true
+        });
+        
+        if (!response.ok) {
+            return false;
+        }
+        
+        const html = await response.text();
+        return html;
+        
+    } catch (error) {
+        return false;
+    }
+}
+
+// Parse currency rates (similar to PHP version)
+function parseCurrencyRates(html) {
+    const rates = {};
+    const $ = cheerio.load(html);
     
-    // Method 1: Try to find data in JSON scripts
-    const jsonScriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/g;
-    let match;
+    // Method 1: Try parsing from table structure first
+    const tables = $('table, tbody');
     
-    while ((match = jsonScriptRegex.exec(pageContent)) !== null) {
-        try {
-            const scriptContent = match[1].trim();
-            if (scriptContent.startsWith('window.') || scriptContent.startsWith('var ') || scriptContent.startsWith('const ')) {
-                // Try to parse as JSON
-                const jsonMatch = scriptContent.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    const jsonData = JSON.parse(jsonMatch[0]);
-                    if (jsonData.rates || jsonData.currencies || jsonData.data) {
-                        const dataArray = jsonData.rates || jsonData.currencies || jsonData.data;
-                        if (Array.isArray(dataArray)) {
-                            dataArray.forEach(item => {
-                                if (item.name && (item.buy || item.sell)) {
-                                    rates.push({
-                                        name: item.name,
-                                        buy: parseFloat(item.buy) || 0,
-                                        sell: parseFloat(item.sell) || 0
-                                    });
-                                }
-                            });
-                        }
+    tables.each((i, table) => {
+        const rows = $(table).find('tr');
+        
+        rows.each((j, tr) => {
+            const cells = $(tr).find('th, td, div[data-currency], div[class*="currency"], div[class*="rate"], div[class*="exchange"]');
+            
+            if (cells.length < 2) return;
+            
+            let code = null;
+            let name = '';
+            const nums = [];
+            
+            cells.each((k, cell) => {
+                const text = $(cell).text().trim();
+                
+                // Look for currency code
+                const codeMatch = text.match(/\(([A-Z]{3})\)/);
+                const currencyMatch = text.match(/\b(USD|EUR|GBP|SAR|AED|KWD|BHD|QAR|OMR|JOD|TRY|EGP|IQD|IRR|DZD|TND|MAD|LYD|RUB|SEK|NOK|DKK|CAD|AUD|NZD|CHF|SGD|MYR|BRL|ZAR|CNY|INR)\b/i);
+                
+                if (codeMatch) {
+                    code = codeMatch[1].toUpperCase();
+                    name = text.replace(/\s*\([A-Z]{3}\).*/, '').replace(/\b[A-Z]{3}\b/i, '').trim();
+                } else if (currencyMatch) {
+                    code = currencyMatch[0].toUpperCase();
+                    name = text.replace(/\b[A-Z]{3}\b/i, '').trim();
+                }
+                
+                // Extract numbers
+                const numMatch = text.match(/[\d\.,]+/);
+                if (numMatch) {
+                    const val = numMatch[0].replace(/,/g, '');
+                    if (!isNaN(parseFloat(val))) {
+                        nums.push(parseFloat(val));
+                    }
+                }
+            });
+            
+            // If we found a code and at least 2 numbers, save it
+            if (code && nums.length >= 2) {
+                rates[code] = {
+                    name: name || code,
+                    buy: nums[0],
+                    sell: nums[1],
+                    average: (nums[0] + nums[1]) / 2,
+                    spread: nums[1] - nums[0],
+                    spread_percent: ((nums[1] - nums[0]) / nums[0]) * 100
+                };
+            }
+        });
+    });
+    
+    // Method 2: Try parsing from div structures
+    if (Object.keys(rates).length === 0) {
+        const divs = $('div[class*="currency"], div[class*="rate"], div[class*="exchange"], div[data-currency]');
+        
+        divs.each((i, div) => {
+            const text = $(div).text().trim();
+            const match = text.match(/([^\n\r]{2,50})\s*\(([A-Z]{3})\)[^\d\r\n]*?([\d\.,]{1,20})[^\d\r\n]*?([\d\.,]{1,20})/u);
+            
+            if (match) {
+                const code = match[2].toUpperCase();
+                const name = match[1].trim();
+                const buy = parseFloat(match[3].replace(/,/g, ''));
+                const sell = parseFloat(match[4].replace(/,/g, ''));
+                
+                if (!isNaN(buy) && !isNaN(sell)) {
+                    rates[code] = {
+                        name: name || code,
+                        buy: buy,
+                        sell: sell,
+                        average: (buy + sell) / 2,
+                        spread: sell - buy,
+                        spread_percent: ((sell - buy) / buy) * 100
+                    };
+                }
+            }
+        });
+    }
+    
+    // Method 3: Try comprehensive regex patterns
+    if (Object.keys(rates).length === 0) {
+        const patterns = [
+            /([^\n\r<]{2,60})\s*\(([A-Z]{3})\)[^\d\n\r]*?([\d\.,]{2,20})[^\d\n\r]*?([\d\.,]{2,20})/u,
+            /([^\n\r<]{2,60})\s*[A-Z]{3}[^\d\n\r]*?([\d\.,]{2,20})[^\d\n\r]*?([\d\.,]{2,20})/u,
+            /(USD|EUR|GBP|SAR|AED|KWD|BHD|QAR|OMR|JOD|TRY|EGP|IQD|IRR|DZD|TND|MAD|LYD|RUB|SEK|NOK|DKK|CAD|AUD|NZD|CHF|SGD|MYR|BRL|ZAR|CNY|INR)[^\d\n\r]*?([\d\.,]{2,20})[^\d\n\r]*?([\d\.,]{2,20})/i
+        ];
+        
+        for (const pattern of patterns) {
+            const matches = html.matchAll(new RegExp(pattern.source, pattern.flags + 'g'));
+            
+            for (const match of matches) {
+                if (match.length >= 4) {
+                    const isCode = /^[A-Z]{3}$/i.test(match[1]);
+                    const code = isCode ? match[1].toUpperCase() : (/^[A-Z]{3}$/i.test(match[2]) ? match[2].toUpperCase() : null);
+                    const name = isCode ? '' : (match[1]?.trim() || '');
+                    const buy = parseFloat(match[match.length - 2]?.replace(/,/g, '') || 0);
+                    const sell = parseFloat(match[match.length - 1]?.replace(/,/g, '') || 0);
+                    
+                    if (code && !isNaN(buy) && !isNaN(sell)) {
+                        rates[code] = {
+                            name: name || code,
+                            buy: buy,
+                            sell: sell,
+                            average: (buy + sell) / 2,
+                            spread: sell - buy,
+                            spread_percent: ((sell - buy) / buy) * 100
+                        };
                     }
                 }
             }
-        } catch (e) {
-            // Continue trying
-        }
-    }
-    
-    // Method 2: If JSON parsing fails, extract from HTML tables
-    if (rates.length === 0) {
-        const tableRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
-        let tableMatch;
-        
-        while ((tableMatch = tableRegex.exec(pageContent)) !== null) {
-            const row = tableMatch[0];
-            const cellRegex = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/g;
-            const cells = [];
-            let cellMatch;
             
-            while ((cellMatch = cellRegex.exec(row)) !== null) {
-                const cellText = cellMatch[1].replace(/<[^>]+>/g, '').trim();
-                cells.push(cellText);
-            }
-            
-            if (cells.length >= 3) {
-                const name = cells[0];
-                const buy = parseFloat(cells[1].replace(/,/g, ''));
-                const sell = parseFloat(cells[2].replace(/,/g, ''));
-                
-                if (name && !isNaN(buy) && !isNaN(sell) && buy > 0 && sell > 0) {
-                    rates.push({ name, buy, sell });
-                }
-            }
+            if (Object.keys(rates).length > 0) break;
         }
     }
     
     return rates;
 }
 
-// Parse gold prices from page content
-function parseGoldPrices(pageContent) {
-    const prices = [];
+// Parse gold rates (similar to PHP version)
+function parseGoldRates(html) {
+    const gold = {};
+    const $ = cheerio.load(html);
     
-    // Method 1: Try JSON data
-    const jsonScriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/g;
-    let match;
+    // Method 1: Try parsing from table structure
+    const tables = $('table, tbody');
     
-    while ((match = jsonScriptRegex.exec(pageContent)) !== null) {
-        try {
-            const scriptContent = match[1].trim();
-            const jsonMatch = scriptContent.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const jsonData = JSON.parse(jsonMatch[0]);
-                if (jsonData.prices || jsonData.gold || jsonData.data) {
-                    const dataArray = jsonData.prices || jsonData.gold || jsonData.data;
-                    if (Array.isArray(dataArray)) {
-                        dataArray.forEach(item => {
-                            if (item.name && item.price) {
-                                prices.push({
-                                    name: item.name,
-                                    price: parseFloat(item.price) || 0
-                                });
-                            }
-                        });
+    tables.each((i, table) => {
+        const rows = $(table).find('tr');
+        
+        rows.each((j, tr) => {
+            const cells = $(tr).find('th, td, div');
+            
+            if (cells.length < 2) return;
+            
+            let carat = null;
+            const nums = [];
+            
+            cells.each((k, cell) => {
+                const text = $(cell).text().trim();
+                
+                // Look for gold carat patterns
+                const caratMatch = text.match(/عيار\s*(24|21|18|22|14)/u);
+                if (caratMatch) {
+                    carat = caratMatch[1];
+                }
+                
+                // Extract numbers (gold prices are typically > 100)
+                const numMatch = text.match(/([\d\.,]+)/);
+                if (numMatch) {
+                    const val = parseFloat(numMatch[0].replace(/,/g, ''));
+                    if (!isNaN(val) && val > 100 && val < 10000000) {
+                        nums.push(val);
                     }
                 }
+            });
+            
+            // If we found a carat and at least 2 numbers, save it
+            if (carat && nums.length >= 2) {
+                gold[`GOLD_${carat}`] = {
+                    name: `ذهب عيار ${carat}`,
+                    buy: nums[0],
+                    sell: nums[1],
+                    average: (nums[0] + nums[1]) / 2,
+                    spread: nums[1] - nums[0]
+                };
             }
-        } catch (e) {
-            // Continue
-        }
-    }
+        });
+    });
     
-    // Method 2: Extract from HTML
-    if (prices.length === 0) {
-        const tableRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
-        let tableMatch;
+    // Method 2: Try parsing from div structures
+    if (Object.keys(gold).length === 0) {
+        const divs = $('div[class*="gold"], div[class*="carat"], div[class*="price"]');
         
-        while ((tableMatch = tableRegex.exec(pageContent)) !== null) {
-            const row = tableMatch[0];
-            const cellRegex = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/g;
-            const cells = [];
-            let cellMatch;
+        divs.each((i, div) => {
+            const text = $(div).text().trim();
+            const match = text.match(/عيار\s*(24|21|18|22|14)[^\d\n\r]*?([\d\.,]+)[^\d\n\r]*?([\d\.,]+)/u);
             
-            while ((cellMatch = cellRegex.exec(row)) !== null) {
-                const cellText = cellMatch[1].replace(/<[^>]+>/g, '').trim();
-                cells.push(cellText);
-            }
-            
-            if (cells.length >= 2) {
-                const name = cells[0];
-                const price = parseFloat(cells[1].replace(/,/g, ''));
+            if (match) {
+                const carat = match[1];
+                const buy = parseFloat(match[2].replace(/,/g, ''));
+                const sell = parseFloat(match[3].replace(/,/g, ''));
                 
-                if (name && !isNaN(price) && price > 0) {
-                    prices.push({ name, price });
+                if (!isNaN(buy) && !isNaN(sell) && buy > 100 && sell > 100) {
+                    gold[`GOLD_${carat}`] = {
+                        name: `ذهب عيار ${carat}`,
+                        buy: buy,
+                        sell: sell,
+                        average: (buy + sell) / 2,
+                        spread: sell - buy
+                    };
                 }
             }
+        });
+    }
+    
+    // Method 3: Try comprehensive regex patterns
+    if (Object.keys(gold).length === 0) {
+        const patterns = [
+            /عيار\s*24[^\d\n\r]{0,100}([\d\.,]+)[^\d\n\r]{0,50}([\d\.,]+)/u,
+            /عيار\s*21[^\d\n\r]{0,100}([\d\.,]+)[^\d\n\r]{0,50}([\d\.,]+)/u,
+            /عيار\s*18[^\d\n\r]{0,100}([\d\.,]+)[^\d\n\r]{0,50}([\d\.,]+)/u,
+            /(\d{1,2})\s*عيار[^\d\n\r]{0,100}([\d\.,]+)[^\d\n\r]{0,50}([\d\.,]+)/u,
+            /(24|21|18)\s*k[^\d\n\r]{0,100}([\d\.,]+)[^\d\n\r]{0,50}([\d\.,]+)/ui
+        ];
+        
+        for (const pattern of patterns) {
+            const matches = html.matchAll(new RegExp(pattern.source, pattern.flags + 'g'));
+            
+            for (const match of matches) {
+                const carat = match[1];
+                const buy = parseFloat(match[2]?.replace(/,/g, '') || 0);
+                const sell = parseFloat(match[3]?.replace(/,/g, '') || 0);
+                
+                if (carat && !isNaN(buy) && !isNaN(sell) && buy > 100 && sell > 100) {
+                    gold[`GOLD_${carat}`] = {
+                        name: `ذهب عيار ${carat}`,
+                        buy: buy,
+                        sell: sell,
+                        average: (buy + sell) / 2,
+                        spread: sell - buy
+                    };
+                }
+            }
+            
+            if (Object.keys(gold).length > 0) break;
         }
     }
     
-    return prices;
+    return gold;
 }
 
-// Parse crypto prices from page content
-function parseCryptoPrices(pageContent) {
-    const prices = [];
-    
-    // Method 1: Try JSON data
-    const jsonScriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/g;
-    let match;
-    
-    while ((match = jsonScriptRegex.exec(pageContent)) !== null) {
-        try {
-            const scriptContent = match[1].trim();
-            const jsonMatch = scriptContent.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const jsonData = JSON.parse(jsonMatch[0]);
-                if (jsonData.prices || jsonData.crypto || jsonData.data) {
-                    const dataArray = jsonData.prices || jsonData.crypto || jsonData.data;
-                    if (Array.isArray(dataArray)) {
-                        dataArray.forEach(item => {
-                            if (item.name && (item.price || item.price_usd)) {
-                                prices.push({
-                                    name: item.name,
-                                    symbol: item.symbol || '',
-                                    price: parseFloat(item.price || item.price_usd) || 0,
-                                    price_syp: item.price_syp ? parseFloat(item.price_syp) : null
-                                });
-                            }
-                        });
-                    }
-                }
-            }
-        } catch (e) {
-            // Continue
-        }
-    }
-    
-    // Method 2: Extract from HTML
-    if (prices.length === 0) {
-        const tableRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
-        let tableMatch;
+// Fetch crypto prices (from CoinGecko API)
+async function fetchCryptoPrices() {
+    try {
+        const response = await fetch(CRYPTO_URL, {
+            timeout: 10000
+        });
         
-        while ((tableMatch = tableRegex.exec(pageContent)) !== null) {
-            const row = tableMatch[0];
-            const cellRegex = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/g;
-            const cells = [];
-            let cellMatch;
-            
-            while ((cellMatch = cellRegex.exec(row)) !== null) {
-                const cellText = cellMatch[1].replace(/<[^>]+>/g, '').trim();
-                cells.push(cellText);
-            }
-            
-            if (cells.length >= 2) {
-                const name = cells[0];
-                const symbol = cells[1] || '';
-                const price = parseFloat(cells[2]?.replace(/,/g, '').replace('$', '') || 0);
-                
-                if (name && !isNaN(price) && price > 0) {
-                    prices.push({
-                        name,
-                        symbol,
-                        price,
-                        price_syp: cells[3] ? parseFloat(cells[3].replace(/,/g, '')) : null
-                    });
-                }
-            }
+        if (!response.ok) {
+            return {};
         }
+        
+        const data = await response.json();
+        
+        const cryptoNames = {
+            'bitcoin': 'بيتكوين',
+            'ethereum': 'إيثريوم',
+            'tether': 'تيثر',
+            'binancecoin': 'بينانس كوين',
+            'solana': 'سولانا',
+            'ripple': 'ريبل',
+            'dogecoin': 'دوجكوين',
+            'cardano': 'كاردانو',
+            'tron': 'ترون',
+            'avalanche-2': 'أفالانش'
+        };
+        
+        const cryptoSymbols = {
+            'bitcoin': 'BTC',
+            'ethereum': 'ETH',
+            'tether': 'USDT',
+            'binancecoin': 'BNB',
+            'solana': 'SOL',
+            'ripple': 'XRP',
+            'dogecoin': 'DOGE',
+            'cardano': 'ADA',
+            'tron': 'TRX',
+            'avalanche-2': 'AVAX'
+        };
+        
+        const crypto = {};
+        
+        for (const [id, info] of Object.entries(data)) {
+            const symbol = cryptoSymbols[id] || id.substring(0, 3).toUpperCase();
+            const price = info.usd || 0;
+            const change = info.usd_24h_change || 0;
+            
+            crypto[symbol] = {
+                name: cryptoNames[id] || id.charAt(0).toUpperCase() + id.slice(1),
+                symbol: symbol,
+                price_usd: price,
+                change_24h: Math.round(change * 100) / 100,
+                trend: change >= 0 ? 'up' : 'down'
+            };
+        }
+        
+        return crypto;
+        
+    } catch (error) {
+        return {};
     }
-    
-    return prices;
 }
 
 // ===== Main Functions =====
 
-// Fetch currencies using Puppeteer
-async function fetchCurrencies(page) {
+// Fetch currencies
+async function fetchCurrencies() {
     try {
-        console.log('📊 Fetching currencies...');
+        output(`📊 Fetching currencies from: ${SOURCE_URL}`);
         
-        await page.goto(`${BASE_URL}/currencies`, {
-            waitUntil: 'networkidle2',
-            timeout: 60000
-        });
+        const html = await fetchHTML(SOURCE_URL);
         
-        // Wait a bit more for dynamic content
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        if (html === false) {
+            output('❌ Failed to fetch currencies!', 'error');
+            
+            if (fs.existsSync('data/currencies.json')) {
+                output('📌 Keeping existing currencies data', 'warning');
+                return 0;
+            }
+            
+            return 0;
+        }
         
-        const content = await page.content();
-        const rates = parseCurrencies(content);
+        output(`✅ HTML fetched successfully (${html.length} bytes)`);
+        output('🔍 Parsing currency data...', 'info');
+        
+        const rates = parseCurrencyRates(html);
         
         const data = {
             lastUpdate: getTimestamp(),
-            source: `${BASE_URL}/currencies`,
+            source: SOURCE_URL,
+            fetched_at: new Date().toISOString(),
             rates: rates
         };
         
         saveJSON('data/currencies.json', data);
-        console.log(`✅ Currencies updated: ${rates.length} currencies`);
+        output(`✅ Currencies updated: ${Object.keys(rates).length} currencies`, 'success');
         
-        return rates.length;
+        return Object.keys(rates).length;
         
     } catch (error) {
         console.error('❌ Error fetching currencies:', error.message);
         
         if (fs.existsSync('data/currencies.json')) {
-            console.log('📌 Keeping existing currencies data');
+            output('📌 Keeping existing currencies data', 'warning');
             return 0;
         }
         
@@ -272,37 +417,45 @@ async function fetchCurrencies(page) {
     }
 }
 
-// Fetch gold prices using Puppeteer
-async function fetchGold(page) {
+// Fetch gold prices
+async function fetchGold() {
     try {
-        console.log('🥇 Fetching gold prices...');
+        output('🥇 Fetching gold prices...');
         
-        await page.goto(`${BASE_URL}/gold`, {
-            waitUntil: 'networkidle2',
-            timeout: 60000
-        });
+        const html = await fetchHTML(GOLD_URL);
         
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        if (html === false) {
+            output('❌ Failed to fetch gold prices!', 'error');
+            
+            if (fs.existsSync('data/gold.json')) {
+                output('📌 Keeping existing gold data', 'warning');
+                return 0;
+            }
+            
+            return 0;
+        }
         
-        const content = await page.content();
-        const prices = parseGoldPrices(content);
+        output('🔍 Parsing gold data...', 'info');
+        
+        const gold = parseGoldRates(html);
         
         const data = {
             lastUpdate: getTimestamp(),
-            source: `${BASE_URL}/gold`,
-            prices: prices
+            source: GOLD_URL,
+            fetched_at: new Date().toISOString(),
+            prices: gold
         };
         
         saveJSON('data/gold.json', data);
-        console.log(`✅ Gold prices updated: ${prices.length} items`);
+        output(`✅ Gold prices updated: ${Object.keys(gold).length} types`, 'success');
         
-        return prices.length;
+        return Object.keys(gold).length;
         
     } catch (error) {
         console.error('❌ Error fetching gold prices:', error.message);
         
         if (fs.existsSync('data/gold.json')) {
-            console.log('📌 Keeping existing gold data');
+            output('📌 Keeping existing gold data', 'warning');
             return 0;
         }
         
@@ -310,37 +463,41 @@ async function fetchGold(page) {
     }
 }
 
-// Fetch crypto prices using Puppeteer
-async function fetchCrypto(page) {
+// Fetch crypto prices
+async function fetchCrypto() {
     try {
-        console.log('₿ Fetching crypto prices...');
+        output('₿ Fetching crypto prices...');
         
-        await page.goto(`${BASE_URL}/crypto`, {
-            waitUntil: 'networkidle2',
-            timeout: 60000
-        });
+        const crypto = await fetchCryptoPrices();
         
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        const content = await page.content();
-        const prices = parseCryptoPrices(content);
+        if (Object.keys(crypto).length === 0) {
+            output('⚠️ Failed to fetch crypto prices (will try later)', 'warning');
+            
+            if (fs.existsSync('data/crypto.json')) {
+                output('📌 Keeping existing crypto data', 'warning');
+                return 0;
+            }
+            
+            return 0;
+        }
         
         const data = {
             lastUpdate: getTimestamp(),
-            source: `${BASE_URL}/crypto`,
-            prices: prices
+            source: CRYPTO_URL,
+            fetched_at: new Date().toISOString(),
+            prices: crypto
         };
         
         saveJSON('data/crypto.json', data);
-        console.log(`✅ Crypto prices updated: ${prices.length} currencies`);
+        output(`✅ Crypto prices updated: ${Object.keys(crypto).length} currencies`, 'success');
         
-        return prices.length;
+        return Object.keys(crypto).length;
         
     } catch (error) {
         console.error('❌ Error fetching crypto prices:', error.message);
         
         if (fs.existsSync('data/crypto.json')) {
-            console.log('📌 Keeping existing crypto data');
+            output('📌 Keeping existing crypto data', 'warning');
             return 0;
         }
         
@@ -353,117 +510,40 @@ async function main() {
     console.log('🚀 Starting data fetch...');
     console.log('='.repeat(50));
     
-    let browser;
+    const startTime = Date.now();
     
     try {
-        // Launch browser
-        console.log('🌐 Launching browser...');
-        
-        // Try to find Chrome executable
-        let launchOptions = {
-            headless: 'new',
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process',
-                '--disable-gpu'
-            ]
-        };
-        
-        // In production (GitHub Actions), use Chrome from path
-        if (process.env.NODE_ENV === 'production') {
-            // GitHub Actions will have Chrome installed
-            launchOptions.executablePath = '/usr/bin/google-chrome';
-        } else {
-            // Try to find local Chrome
-            const possiblePaths = [
-                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-                process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
-                process.env.PROGRAMFILES + '\\Google\\Chrome\\Application\\chrome.exe'
-            ];
-            
-            for (const chromePath of possiblePaths) {
-                if (require('fs').existsSync(chromePath)) {
-                    console.log(`✅ Found Chrome at: ${chromePath}`);
-                    launchOptions.executablePath = chromePath;
-                    break;
-                }
-            }
-            
-            if (!launchOptions.executablePath) {
-                console.log('⚠️  Using Puppeteer bundled browser');
-            }
-        }
-        
-        browser = await puppeteer.launch(launchOptions);
-        
-        const page = await browser.newPage();
-        
-        // Set viewport
-        await page.setViewport({ width: 1920, height: 1080 });
-        
-        // Set user agent
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-        
-        // Set extra headers
-        await page.setExtraHTTPHeaders({
-            'Accept-Language': 'ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Referer': 'https://www.google.com/',
-            'Origin': 'https://sp-today.com'
-        });
-        
-        console.log('✅ Browser ready');
-        
-        // Visit homepage first to establish session
-        console.log('🏠 Visiting homepage...');
-        await page.goto(BASE_URL, {
-            waitUntil: 'networkidle2',
-            timeout: 60000
-        });
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        console.log('✅ Homepage loaded');
-        
-        // Fetch all data
-        const results = await Promise.all([
-            fetchCurrencies(page),
-            fetchGold(page),
-            fetchCrypto(page)
+        // Fetch all data in parallel
+        const [currenciesCount, goldCount, cryptoCount] = await Promise.all([
+            fetchCurrencies(),
+            fetchGold(),
+            fetchCrypto()
         ]);
         
-        const [currenciesCount, goldCount, cryptoCount] = results;
+        const endTime = Date.now();
+        const duration = ((endTime - startTime) / 1000).toFixed(2);
         
         console.log('='.repeat(50));
         console.log('✨ All data fetch completed!');
         console.log(`📊 Currencies: ${currenciesCount}`);
         console.log(`🥇 Gold items: ${goldCount}`);
         console.log(`₿ Crypto currencies: ${cryptoCount}`);
+        console.log(`⏱️ Duration: ${duration} seconds`);
         console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
         
         const totalFetched = currenciesCount + goldCount + cryptoCount;
         if (totalFetched === 0) {
-            console.log('⚠️  Warning: No new data was fetched (existing data kept)');
+            console.log('⚠️ Warning: No new data was fetched (existing data kept)');
         }
         
     } catch (error) {
         console.error('💥 Fatal error:', error);
         process.exit(1);
-    } finally {
-        if (browser) {
-            await browser.close();
-            console.log('🔒 Browser closed');
-        }
     }
 }
 
 // Run script
-if (require.main === module) {
+if (require.main === module || !module.parent) {
     main();
 }
 

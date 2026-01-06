@@ -1,156 +1,247 @@
 {
-  "lastUpdate": 1767715868146,
-  "source": "https://sp-today.com/currencies",
-  "rates": [
-    {
-      "name": "USDUSDدولار أمريكي",
-      "buy": 12220,
-      "sell": 12300
-    },
-    {
-      "name": "EUREURيورو",
+  "lastUpdate": 1767722572028,
+  "source": "https://www.sp-today.com/currencies",
+  "fetched_at": "2026-01-06T18:02:52.028Z",
+  "rates": {
+    "EUR": {
+      "name": "EUR",
       "buy": 14170,
-      "sell": 14380
+      "sell": 14380,
+      "average": 14275,
+      "spread": 210,
+      "spread_percent": 1.4820042342978124
     },
-    {
-      "name": "TRYTRYليرة تركية",
+    "TRY": {
+      "name": "TRY",
       "buy": 282,
-      "sell": 286
+      "sell": 286,
+      "average": 284,
+      "spread": 4,
+      "spread_percent": 1.4184397163120568
     },
-    {
-      "name": "SARSARريال سعودي",
-      "buy": 3226,
-      "sell": 3280
-    },
-    {
-      "name": "AEDAEDدرهم إماراتي",
-      "buy": 3294,
-      "sell": 3349
-    },
-    {
-      "name": "EGPEGPجنيه مصري",
-      "buy": 256,
-      "sell": 260
-    },
-    {
-      "name": "LYDLYDدينار ليبي",
-      "buy": 2235,
-      "sell": 2273
-    },
-    {
-      "name": "JODJODدينار أردني",
-      "buy": 17068,
-      "sell": 17353
-    },
-    {
-      "name": "KWDKWDدينار كويتي",
-      "buy": 39368,
-      "sell": 40026
-    },
-    {
-      "name": "GBPGBPجنيه إسترليني",
-      "buy": 16329,
-      "sell": 16602
-    },
-    {
-      "name": "QARQARريال قطري",
-      "buy": 3323,
-      "sell": 3378
-    },
-    {
-      "name": "BHDBHDدينار بحريني",
-      "buy": 32090,
-      "sell": 32626
-    },
-    {
-      "name": "SEKSEKكرونة سويدية",
-      "buy": 1312,
-      "sell": 1334
-    },
-    {
-      "name": "CADCADدولار كندي",
-      "buy": 8779,
-      "sell": 8925
-    },
-    {
-      "name": "OMROMRريال عماني",
-      "buy": 31415,
-      "sell": 31940
-    },
-    {
-      "name": "NOKNOKكرونة نرويجية",
-      "buy": 1203,
-      "sell": 1223
-    },
-    {
-      "name": "DKKDKKكرونة دنماركية",
-      "buy": 1892,
-      "sell": 1924
-    },
-    {
-      "name": "DZDDZDدينار جزائري",
-      "buy": 93,
-      "sell": 95
-    },
-    {
-      "name": "MADMADدرهم مغربي",
-      "buy": 1317,
-      "sell": 1339
-    },
-    {
-      "name": "TNDTNDدينار تونسي",
-      "buy": 4226,
-      "sell": 4297
-    },
-    {
-      "name": "RUBRUBروبل روسي",
-      "buy": 150,
-      "sell": 152
-    },
-    {
-      "name": "MYRMYRرينغيت ماليزي",
-      "buy": 2989,
-      "sell": 3039
-    },
-    {
-      "name": "BRLBRLريال برازيلي",
-      "buy": 2250,
-      "sell": 2288
-    },
-    {
-      "name": "NZDNZDدولار نيوزيلندي",
-      "buy": 6991,
-      "sell": 7108
-    },
-    {
-      "name": "CHFCHFفرنك سويسري",
-      "buy": 15223,
-      "sell": 15478
-    },
-    {
-      "name": "AUDAUDدولار أسترالي",
+    "AUD": {
+      "name": "AUD",
       "buy": 8132,
-      "sell": 8268
+      "sell": 8268,
+      "average": 8200,
+      "spread": 136,
+      "spread_percent": 1.6724053123462863
     },
-    {
-      "name": "ZARZARراند جنوب أفريقي",
+    "QAR": {
+      "name": "QAR",
+      "buy": 3323,
+      "sell": 3378,
+      "average": 3350.5,
+      "spread": 55,
+      "spread_percent": 1.6551309058080048
+    },
+    "BHD": {
+      "name": "BHD",
+      "buy": 32090,
+      "sell": 32626,
+      "average": 32358,
+      "spread": 536,
+      "spread_percent": 1.670302274851979
+    },
+    "SEK": {
+      "name": "SEK",
+      "buy": 1312,
+      "sell": 1334,
+      "average": 1323,
+      "spread": 22,
+      "spread_percent": 1.676829268292683
+    },
+    "OMR": {
+      "name": "OMR",
+      "buy": 31415,
+      "sell": 31940,
+      "average": 31677.5,
+      "spread": 525,
+      "spread_percent": 1.6711761897182875
+    },
+    "NOK": {
+      "name": "NOK",
+      "buy": 1203,
+      "sell": 1223,
+      "average": 1213,
+      "spread": 20,
+      "spread_percent": 1.6625103906899419
+    },
+    "DKK": {
+      "name": "DKK",
+      "buy": 1892,
+      "sell": 1924,
+      "average": 1908,
+      "spread": 32,
+      "spread_percent": 1.6913319238900635
+    },
+    "DZD": {
+      "name": "DZD",
+      "buy": 93,
+      "sell": 95,
+      "average": 94,
+      "spread": 2,
+      "spread_percent": 2.1505376344086025
+    },
+    "MAD": {
+      "name": "MAD",
+      "buy": 1317,
+      "sell": 1339,
+      "average": 1328,
+      "spread": 22,
+      "spread_percent": 1.6704631738800304
+    },
+    "TND": {
+      "name": "TND",
+      "buy": 4226,
+      "sell": 4297,
+      "average": 4261.5,
+      "spread": 71,
+      "spread_percent": 1.6800757217226692
+    },
+    "RUB": {
+      "name": "RUB",
+      "buy": 150,
+      "sell": 152,
+      "average": 151,
+      "spread": 2,
+      "spread_percent": 1.3333333333333335
+    },
+    "NZD": {
+      "name": "NZD",
+      "buy": 6991,
+      "sell": 7108,
+      "average": 7049.5,
+      "spread": 117,
+      "spread_percent": 1.6735803175511372
+    },
+    "USD": {
+      "name": "USD",
+      "buy": 12220,
+      "sell": 12300,
+      "average": 12260,
+      "spread": 80,
+      "spread_percent": 0.6546644844517185
+    },
+    "SAR": {
+      "name": "SAR",
+      "buy": 3226,
+      "sell": 3280,
+      "average": 3253,
+      "spread": 54,
+      "spread_percent": 1.6738995660260385
+    },
+    "AED": {
+      "name": "AED",
+      "buy": 3294,
+      "sell": 3349,
+      "average": 3321.5,
+      "spread": 55,
+      "spread_percent": 1.6697024893746206
+    },
+    "EGP": {
+      "name": "EGP",
+      "buy": 256,
+      "sell": 260,
+      "average": 258,
+      "spread": 4,
+      "spread_percent": 1.5625
+    },
+    "LYD": {
+      "name": "LYD",
+      "buy": 2235,
+      "sell": 2273,
+      "average": 2254,
+      "spread": 38,
+      "spread_percent": 1.7002237136465326
+    },
+    "JOD": {
+      "name": "JOD",
+      "buy": 17068,
+      "sell": 17353,
+      "average": 17210.5,
+      "spread": 285,
+      "spread_percent": 1.6697914225451138
+    },
+    "KWD": {
+      "name": "KWD",
+      "buy": 39368,
+      "sell": 40026,
+      "average": 39697,
+      "spread": 658,
+      "spread_percent": 1.671408250355619
+    },
+    "GBP": {
+      "name": "GBP",
+      "buy": 16329,
+      "sell": 16602,
+      "average": 16465.5,
+      "spread": 273,
+      "spread_percent": 1.6718721293404373
+    },
+    "CAD": {
+      "name": "CAD",
+      "buy": 8779,
+      "sell": 8925,
+      "average": 8852,
+      "spread": 146,
+      "spread_percent": 1.6630595739833693
+    },
+    "MYR": {
+      "name": "MYR",
+      "buy": 2989,
+      "sell": 3039,
+      "average": 3014,
+      "spread": 50,
+      "spread_percent": 1.672800267648043
+    },
+    "BRL": {
+      "name": "BRL",
+      "buy": 2250,
+      "sell": 2288,
+      "average": 2269,
+      "spread": 38,
+      "spread_percent": 1.6888888888888887
+    },
+    "CHF": {
+      "name": "CHF",
+      "buy": 15223,
+      "sell": 15478,
+      "average": 15350.5,
+      "spread": 255,
+      "spread_percent": 1.675096892859489
+    },
+    "ZAR": {
+      "name": "ZAR",
       "buy": 739,
-      "sell": 751
+      "sell": 751,
+      "average": 745,
+      "spread": 12,
+      "spread_percent": 1.6238159675236805
     },
-    {
-      "name": "IQDIQDدينار عراقي",
+    "IQD": {
+      "name": "IQD",
       "buy": 9,
-      "sell": 9
+      "sell": 9,
+      "average": 9,
+      "spread": 0,
+      "spread_percent": 0
     },
-    {
-      "name": "IRRIRRريال إيراني",
+    "IRR": {
+      "name": "IRR",
       "buy": 0,
-      "sell": 0
+      "sell": 0,
+      "average": 0,
+      "spread": 0,
+      "spread_percent": null
     },
-    {
-      "name": "SGDSGDدولار سنغافوري",
+    "SGD": {
+      "name": "SGD",
       "buy": 9447,
-      "sell": 9605
+      "sell": 9605,
+      "average": 9526,
+      "spread": 158,
+      "spread_percent": 1.6724886207261562
     }
-  ]
+  }
 }

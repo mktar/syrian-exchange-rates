@@ -1,5 +1,28 @@
 {
-  "lastUpdate": 1767715868221,
-  "source": "https://sp-today.com/gold",
-  "prices": []
+  "lastUpdate": 1767722571440,
+  "source": "https://www.sp-today.com/gold",
+  "fetched_at": "2026-01-06T18:02:51.440Z",
+  "prices": {
+    "GOLD_24": {
+      "name": "ذهب عيار 24",
+      "buy": 144.33,
+      "sell": 4489.21,
+      "average": 2316.77,
+      "spread": 4344.88
+    },
+    "GOLD_21": {
+      "name": "ذهب عيار 21",
+      "buy": 126.29,
+      "sell": 3928.06,
+      "average": 2027.175,
+      "spread": 3801.77
+    },
+    "GOLD_18": {
+      "name": "ذهب عيار 18",
+      "buy": 108.25,
+      "sell": 3366.91,
+      "average": 1737.58,
+      "spread": 3258.66
+    }
+  }
 }
