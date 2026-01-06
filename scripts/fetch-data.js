@@ -343,11 +343,11 @@ async function main() {
     console.log(`₿ Crypto currencies: ${cryptoCount}`);
     console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
     
-    // Exit with error code if no data was fetched
+    // Exit successfully even if no new data was fetched
+    // (keeping existing data is not a failure)
     const totalFetched = currenciesCount + goldCount + cryptoCount;
     if (totalFetched === 0) {
-        console.log('⚠️ Warning: No new data was fetched');
-        process.exit(1);
+        console.log('⚠️ Warning: No new data was fetched (existing data kept)');
     }
 }
 
