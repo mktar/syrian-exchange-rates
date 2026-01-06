@@ -9,15 +9,22 @@ const BASE_URL = 'https://sp-today.com';
 // Common headers to mimic browser requests
 const COMMON_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
     'Accept-Language': 'ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7',
     'Accept-Encoding': 'gzip, deflate, br',
+    'Referer': 'https://sp-today.com/',
+    'Origin': 'https://sp-today.com',
     'Connection': 'keep-alive',
     'Upgrade-Insecure-Requests': '1',
     'Sec-Fetch-Dest': 'document',
     'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Cache-Control': 'max-age=0'
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-User': '?1',
+    'Cache-Control': 'max-age=0',
+    'DNT': '1',
+    'Sec-CH-UA': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+    'Sec-CH-UA-Mobile': '?0',
+    'Sec-CH-UA-Platform': '"Windows"'
 };
 
 // ===== Helper Functions =====
@@ -25,6 +32,31 @@ const COMMON_HEADERS = {
 // Format timestamp
 function getTimestamp() {
     return Date.now();
+}
+
+// Store cookies globally
+let cookies = '';
+
+// Get cookies from homepage
+async function getCookies() {
+    try {
+        const response = await axios.get(BASE_URL, {
+            headers: COMMON_HEADERS,
+            timeout: 30000,
+            withCredentials: true
+        });
+        
+        // Extract cookies from response
+        const setCookieHeaders = response.headers['set-cookie'];
+        if (setCookieHeaders) {
+            cookies = setCookieHeaders.map(c => c.split(';')[0]).join('; ');
+        }
+        
+        return cookies;
+    } catch (error) {
+        console.log('⚠️  Could not get cookies, continuing without them');
+        return '';
+    }
 }
 
 // Parse currency prices from sp-today.com
@@ -216,15 +248,37 @@ function saveJSON(filepath, data) {
 
 // ===== Main Functions =====
 
+// Helper function to fetch with retry
+async function fetchWithRetry(url, maxRetries = 3, delay = 2000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const headers = { ...COMMON_HEADERS };
+            if (cookies) {
+                headers['Cookie'] = cookies;
+            }
+            
+            const response = await axios.get(url, {
+                headers,
+                timeout: 30000
+            });
+            return response;
+        } catch (error) {
+            if (attempt === maxRetries) {
+                throw error;
+            }
+            console.log(`⚠️  Attempt ${attempt} failed, retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2; // Exponential backoff
+        }
+    }
+}
+
 // Fetch currencies
 async function fetchCurrencies() {
     try {
         console.log('📊 Fetching currencies...');
         
-        const response = await axios.get(`${BASE_URL}/currencies`, {
-            headers: COMMON_HEADERS,
-            timeout: 30000
-        });
+        const response = await fetchWithRetry(`${BASE_URL}/currencies`);
         
         const rates = parseCurrencies(response.data);
         
@@ -257,10 +311,7 @@ async function fetchGold() {
     try {
         console.log('🥇 Fetching gold prices...');
         
-        const response = await axios.get(`${BASE_URL}/gold`, {
-            headers: COMMON_HEADERS,
-            timeout: 30000
-        });
+        const response = await fetchWithRetry(`${BASE_URL}/gold`);
         
         const prices = parseGoldPrices(response.data);
         
@@ -293,10 +344,7 @@ async function fetchCrypto() {
     try {
         console.log('₿ Fetching crypto prices...');
         
-        const response = await axios.get(`${BASE_URL}/crypto`, {
-            headers: COMMON_HEADERS,
-            timeout: 30000
-        });
+        const response = await fetchWithRetry(`${BASE_URL}/crypto`);
         
         const prices = parseCryptoPrices(response.data);
         
@@ -328,6 +376,13 @@ async function fetchCrypto() {
 async function main() {
     console.log('🚀 Starting data fetch...');
     console.log('='.repeat(50));
+    
+    // Get cookies first
+    console.log('🍪 Fetching cookies...');
+    await getCookies();
+    if (cookies) {
+        console.log('✅ Cookies obtained');
+    }
     
     // Fetch all data in parallel
     const results = await Promise.all([
