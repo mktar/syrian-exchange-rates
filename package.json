@@ -1,0 +1,26 @@
+{
+  "name": "syrian-exchange-rates",
+  "version": "1.0.0",
+  "description": "تطبيق ويب لعرض أسعار الصرف السورية",
+  "main": "index.html",
+  "scripts": {
+    "fetch": "node scripts/fetch-data.js",
+    "start": "npx serve . -p 3000"
+  },
+  "keywords": [
+    "exchange-rates",
+    "syria",
+    "currencies",
+    "gold",
+    "crypto"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}

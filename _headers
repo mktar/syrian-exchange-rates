@@ -1,0 +1,22 @@
+# Cache Control for JSON files - Force no caching
+/data/*.json
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+# Cache HTML files
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Cache CSS and JS files with long duration
+/css/*.css
+  Cache-Control: public, max-age=31536000, immutable
+/js/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+# Security headers
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
