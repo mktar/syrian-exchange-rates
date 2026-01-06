@@ -6,6 +6,20 @@ const path = require('path');
 // Base URL
 const BASE_URL = 'https://sp-today.com';
 
+// Common headers to mimic browser requests
+const COMMON_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Cache-Control': 'max-age=0'
+};
+
 // ===== Helper Functions =====
 
 // Format timestamp
@@ -208,11 +222,7 @@ async function fetchCurrencies() {
         console.log('📊 Fetching currencies...');
         
         const response = await axios.get(`${BASE_URL}/currencies`, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'ar,en-US;q=0.7,en;q=0.3'
-            },
+            headers: COMMON_HEADERS,
             timeout: 30000
         });
         
@@ -248,11 +258,7 @@ async function fetchGold() {
         console.log('🥇 Fetching gold prices...');
         
         const response = await axios.get(`${BASE_URL}/gold`, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'ar,en-US;q=0.7,en;q=0.3'
-            },
+            headers: COMMON_HEADERS,
             timeout: 30000
         });
         
@@ -288,11 +294,7 @@ async function fetchCrypto() {
         console.log('₿ Fetching crypto prices...');
         
         const response = await axios.get(`${BASE_URL}/crypto`, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'ar,en-US;q=0.7,en;q=0.3'
-            },
+            headers: COMMON_HEADERS,
             timeout: 30000
         });
         
