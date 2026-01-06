@@ -1,126 +1,126 @@
 {
-  "lastUpdate": 1736143800000,
-  "source": "sp-today.com/crypto",
+  "lastUpdate": 1767718888791,
+  "source": "https://sp-today.com/crypto",
   "prices": [
     {
-      "name": "Bitcoin",
-      "symbol": "₿",
-      "price": 102500,
-      "price_syp": 1281250000
+      "name": "1",
+      "symbol": "BitcoinBTC",
+      "price": 92612,
+      "price_syp": null
     },
     {
-      "name": "Ethereum",
-      "symbol": "Ξ",
-      "price": 3650,
-      "price_syp": 45625000
+      "name": "2",
+      "symbol": "EthereumETH",
+      "price": 3248.87,
+      "price_syp": null
     },
     {
-      "name": "BNB",
-      "symbol": "🔶",
-      "price": 690,
-      "price_syp": 8625000
+      "name": "3",
+      "symbol": "TetherUSDT",
+      "price": 0.999653,
+      "price_syp": null
     },
     {
-      "name": "Solana",
-      "symbol": "◎",
-      "price": 210,
-      "price_syp": 2625000
+      "name": "4",
+      "symbol": "XRPXRP",
+      "price": 2.29,
+      "price_syp": null
     },
     {
-      "name": "XRP",
-      "symbol": "✕",
-      "price": 2.45,
-      "price_syp": 30625
+      "name": "5",
+      "symbol": "BNBBNB",
+      "price": 908.09,
+      "price_syp": null
     },
     {
-      "name": "Cardano",
-      "symbol": "₳",
-      "price": 0.95,
-      "price_syp": 11875
+      "name": "6",
+      "symbol": "SolanaSOL",
+      "price": 138.77,
+      "price_syp": null
     },
     {
-      "name": "Dogecoin",
-      "symbol": "🐕",
-      "price": 0.35,
-      "price_syp": 4375
+      "name": "7",
+      "symbol": "USDCUSDC",
+      "price": 1,
+      "price_syp": null
     },
     {
-      "name": "Shiba Inu",
-      "symbol": "🐶",
-      "price": 0.000025,
-      "price_syp": 0.3125
+      "name": "8",
+      "symbol": "Lido Staked EtherSTETH",
+      "price": 3244.19,
+      "price_syp": null
     },
     {
-      "name": "Polkadot",
-      "symbol": "●",
-      "price": 7.2,
-      "price_syp": 90000
+      "name": "9",
+      "symbol": "TRONTRX",
+      "price": 0.292207,
+      "price_syp": null
     },
     {
-      "name": "Avalanche",
-      "symbol": "🔺",
-      "price": 38.5,
-      "price_syp": 481250
+      "name": "10",
+      "symbol": "DogecoinDOGE",
+      "price": 0.145317,
+      "price_syp": null
     },
     {
-      "name": "Chainlink",
-      "symbol": "🔗",
-      "price": 18.5,
-      "price_syp": 231250
+      "name": "11",
+      "symbol": "CardanoADA",
+      "price": 0.409758,
+      "price_syp": null
     },
     {
-      "name": "Polygon",
-      "symbol": "♦",
-      "price": 0.52,
-      "price_syp": 6500
+      "name": "12",
+      "symbol": "Figure HelocFIGR_HELOC",
+      "price": 1.03,
+      "price_syp": null
     },
     {
-      "name": "Litecoin",
-      "symbol": "Ł",
-      "price": 72,
-      "price_syp": 900000
+      "name": "13",
+      "symbol": "Wrapped stETHWSTETH",
+      "price": 3970.04,
+      "price_syp": null
     },
     {
-      "name": "Uniswap",
-      "symbol": "🦄",
-      "price": 12.5,
-      "price_syp": 156250
+      "name": "14",
+      "symbol": "Bitcoin CashBCH",
+      "price": 632.81,
+      "price_syp": null
     },
     {
-      "name": "Stellar",
-      "symbol": "✴",
-      "price": 0.42,
-      "price_syp": 5250
+      "name": "15",
+      "symbol": "WhiteBIT CoinWBT",
+      "price": 57.96,
+      "price_syp": null
     },
     {
-      "name": "Cosmos",
-      "symbol": "⚛",
-      "price": 8.8,
-      "price_syp": 110000
+      "name": "16",
+      "symbol": "Wrapped Beacon ETHWBETH",
+      "price": 3528.79,
+      "price_syp": null
     },
     {
-      "name": "Near Protocol",
-      "symbol": "Ⓝ",
-      "price": 5.2,
-      "price_syp": 65000
+      "name": "17",
+      "symbol": "Wrapped BitcoinWBTC",
+      "price": 92298,
+      "price_syp": null
     },
     {
-      "name": "Algorand",
-      "symbol": "⚙",
-      "price": 0.35,
-      "price_syp": 4375
+      "name": "18",
+      "symbol": "Wrapped eETHWEETH",
+      "price": 3522.18,
+      "price_syp": null
     },
     {
-      "name": "VeChain",
-      "symbol": "Ⅴ",
-      "price": 0.035,
-      "price_syp": 437.5
+      "name": "19",
+      "symbol": "USDSUSDS",
+      "price": 0.999713,
+      "price_syp": null
     },
     {
-      "name": "Hedera",
-      "symbol": "ℏ",
-      "price": 0.095,
-      "price_syp": 1187.5
+      "name": "20",
+      "symbol": "ChainlinkLINK",
+      "price": 13.75,
+      "price_syp": null
     }
   ]
 }

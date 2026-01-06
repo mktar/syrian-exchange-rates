@@ -1,236 +1,19 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
 
+// Add stealth plugin
+puppeteer.use(StealthPlugin());
+
 // Base URL
 const BASE_URL = 'https://sp-today.com';
-
-// Common headers to mimic browser requests
-const COMMON_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-    'Accept-Language': 'ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Referer': 'https://sp-today.com/',
-    'Origin': 'https://sp-today.com',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'same-origin',
-    'Sec-Fetch-User': '?1',
-    'Cache-Control': 'max-age=0',
-    'DNT': '1',
-    'Sec-CH-UA': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-    'Sec-CH-UA-Mobile': '?0',
-    'Sec-CH-UA-Platform': '"Windows"'
-};
 
 // ===== Helper Functions =====
 
 // Format timestamp
 function getTimestamp() {
     return Date.now();
-}
-
-// Store cookies globally
-let cookies = '';
-
-// Get cookies from homepage
-async function getCookies() {
-    try {
-        const response = await axios.get(BASE_URL, {
-            headers: COMMON_HEADERS,
-            timeout: 30000,
-            withCredentials: true
-        });
-        
-        // Extract cookies from response
-        const setCookieHeaders = response.headers['set-cookie'];
-        if (setCookieHeaders) {
-            cookies = setCookieHeaders.map(c => c.split(';')[0]).join('; ');
-        }
-        
-        return cookies;
-    } catch (error) {
-        console.log('⚠️  Could not get cookies, continuing without them');
-        return '';
-    }
-}
-
-// Parse currency prices from sp-today.com
-function parseCurrencies(html) {
-    const $ = cheerio.load(html);
-    const rates = [];
-    
-    // Try multiple selectors for currency tables
-    // The website structure might change, so we try different approaches
-    
-    // Method 1: Table with specific class
-    $('table tbody tr, .currency-table tr, .rates-table tr').each((index, element) => {
-        const $row = $(element);
-        const cells = $row.find('td, div.currency-cell');
-        
-        if (cells.length >= 3) {
-            const name = $(cells[0]).text().trim();
-            const buy = $(cells[1]).text().trim().replace(/,/g, '');
-            const sell = $(cells[2]).text().trim().replace(/,/g, '');
-            
-            // Skip if essential data is missing
-            if (!name || !buy || !sell) return;
-            if (name === '' || buy === '' || sell === '') return;
-            
-            // Parse numbers
-            const buyPrice = parseFloat(buy);
-            const sellPrice = parseFloat(sell);
-            
-            if (!isNaN(buyPrice) && !isNaN(sellPrice)) {
-                rates.push({
-                    name: name,
-                    buy: buyPrice,
-                    sell: sellPrice
-                });
-            }
-        }
-    });
-    
-    // Method 2: If table parsing fails, try card-based layout
-    if (rates.length === 0) {
-        $('.currency-card, .rate-card, .price-card').each((index, element) => {
-            const $card = $(element);
-            const name = $card.find('.name, .currency-name, h3, h4').first().text().trim();
-            const buy = $card.find('.buy, .buy-price, .rate-buy').first().text().trim().replace(/,/g, '');
-            const sell = $card.find('.sell, .sell-price, .rate-sell').first().text().trim().replace(/,/g, '');
-            
-            if (name && buy && sell) {
-                const buyPrice = parseFloat(buy);
-                const sellPrice = parseFloat(sell);
-                
-                if (!isNaN(buyPrice) && !isNaN(sellPrice)) {
-                    rates.push({
-                        name: name,
-                        buy: buyPrice,
-                        sell: sellPrice
-                    });
-                }
-            }
-        });
-    }
-    
-    return rates;
-}
-
-// Parse gold prices from sp-today.com
-function parseGoldPrices(html) {
-    const $ = cheerio.load(html);
-    const prices = [];
-    
-    // Try multiple selectors for gold prices
-    
-    // Method 1: Table rows
-    $('table tbody tr, .gold-table tr').each((index, element) => {
-        const $row = $(element);
-        const cells = $row.find('td');
-        
-        if (cells.length >= 2) {
-            const name = $(cells[0]).text().trim();
-            const price = $(cells[1]).text().trim().replace(/,/g, '');
-            
-            if (name && price) {
-                const priceNum = parseFloat(price);
-                if (!isNaN(priceNum)) {
-                    prices.push({
-                        name: name,
-                        price: priceNum
-                    });
-                }
-            }
-        }
-    });
-    
-    // Method 2: Card-based layout
-    if (prices.length === 0) {
-        $('.gold-card, .price-item, .gold-price-item').each((index, element) => {
-            const $item = $(element);
-            const name = $item.find('.name, .title, h3, h4').first().text().trim();
-            const price = $item.find('.price, .value, .amount').first().text().trim().replace(/,/g, '');
-            
-            if (name && price) {
-                const priceNum = parseFloat(price);
-                if (!isNaN(priceNum)) {
-                    prices.push({
-                        name: name,
-                        price: priceNum
-                    });
-                }
-            }
-        });
-    }
-    
-    return prices;
-}
-
-// Parse crypto prices from sp-today.com
-function parseCryptoPrices(html) {
-    const $ = cheerio.load(html);
-    const prices = [];
-    
-    // Try multiple selectors for crypto prices
-    
-    // Method 1: Table rows
-    $('table tbody tr, .crypto-table tr').each((index, element) => {
-        const $row = $(element);
-        const cells = $row.find('td');
-        
-        if (cells.length >= 3) {
-            const name = $(cells[0]).text().trim();
-            const symbol = $(cells[1]).text().trim();
-            const price = $(cells[2]).text().trim().replace(/,/g, '').replace('$', '');
-            const priceSYP = $(cells[3]).text().trim().replace(/,/g, '');
-            
-            if (name && price) {
-                const priceNum = parseFloat(price);
-                const sypPrice = priceSYP ? parseFloat(priceSYP) : null;
-                
-                if (!isNaN(priceNum)) {
-                    prices.push({
-                        name: name,
-                        symbol: symbol || '',
-                        price: priceNum,
-                        price_syp: sypPrice
-                    });
-                }
-            }
-        }
-    });
-    
-    // Method 2: Card-based layout
-    if (prices.length === 0) {
-        $('.crypto-card, .crypto-item, .currency-card').each((index, element) => {
-            const $item = $(element);
-            const name = $item.find('.name, .title, h3, h4').first().text().trim();
-            const symbol = $item.find('.symbol, .code').first().text().trim();
-            const price = $item.find('.price, .value, .amount').first().text().trim().replace(/,/g, '').replace('$', '');
-            const priceSYP = $item.find('.syp-price, .syrian-price').first().text().trim().replace(/,/g, '');
-            
-            if (name && price) {
-                const priceNum = parseFloat(price);
-                const sypPrice = priceSYP ? parseFloat(priceSYP) : null;
-                
-                if (!isNaN(priceNum)) {
-                    prices.push({
-                        name: name,
-                        symbol: symbol || '',
-                        price: priceNum,
-                        price_syp: sypPrice
-                    });
-                }
-            }
-        });
-    }
-    
-    return prices;
 }
 
 // Save JSON data
@@ -246,41 +29,225 @@ function saveJSON(filepath, data) {
     console.log(`✅ Saved: ${filepath}`);
 }
 
-// ===== Main Functions =====
-
-// Helper function to fetch with retry
-async function fetchWithRetry(url, maxRetries = 3, delay = 2000) {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+// Parse currency prices from page content
+function parseCurrencies(pageContent) {
+    const rates = [];
+    
+    // Method 1: Try to find data in JSON scripts
+    const jsonScriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/g;
+    let match;
+    
+    while ((match = jsonScriptRegex.exec(pageContent)) !== null) {
         try {
-            const headers = { ...COMMON_HEADERS };
-            if (cookies) {
-                headers['Cookie'] = cookies;
+            const scriptContent = match[1].trim();
+            if (scriptContent.startsWith('window.') || scriptContent.startsWith('var ') || scriptContent.startsWith('const ')) {
+                // Try to parse as JSON
+                const jsonMatch = scriptContent.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const jsonData = JSON.parse(jsonMatch[0]);
+                    if (jsonData.rates || jsonData.currencies || jsonData.data) {
+                        const dataArray = jsonData.rates || jsonData.currencies || jsonData.data;
+                        if (Array.isArray(dataArray)) {
+                            dataArray.forEach(item => {
+                                if (item.name && (item.buy || item.sell)) {
+                                    rates.push({
+                                        name: item.name,
+                                        buy: parseFloat(item.buy) || 0,
+                                        sell: parseFloat(item.sell) || 0
+                                    });
+                                }
+                            });
+                        }
+                    }
+                }
             }
-            
-            const response = await axios.get(url, {
-                headers,
-                timeout: 30000
-            });
-            return response;
-        } catch (error) {
-            if (attempt === maxRetries) {
-                throw error;
-            }
-            console.log(`⚠️  Attempt ${attempt} failed, retrying in ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            delay *= 2; // Exponential backoff
+        } catch (e) {
+            // Continue trying
         }
     }
+    
+    // Method 2: If JSON parsing fails, extract from HTML tables
+    if (rates.length === 0) {
+        const tableRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
+        let tableMatch;
+        
+        while ((tableMatch = tableRegex.exec(pageContent)) !== null) {
+            const row = tableMatch[0];
+            const cellRegex = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/g;
+            const cells = [];
+            let cellMatch;
+            
+            while ((cellMatch = cellRegex.exec(row)) !== null) {
+                const cellText = cellMatch[1].replace(/<[^>]+>/g, '').trim();
+                cells.push(cellText);
+            }
+            
+            if (cells.length >= 3) {
+                const name = cells[0];
+                const buy = parseFloat(cells[1].replace(/,/g, ''));
+                const sell = parseFloat(cells[2].replace(/,/g, ''));
+                
+                if (name && !isNaN(buy) && !isNaN(sell) && buy > 0 && sell > 0) {
+                    rates.push({ name, buy, sell });
+                }
+            }
+        }
+    }
+    
+    return rates;
 }
 
-// Fetch currencies
-async function fetchCurrencies() {
+// Parse gold prices from page content
+function parseGoldPrices(pageContent) {
+    const prices = [];
+    
+    // Method 1: Try JSON data
+    const jsonScriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/g;
+    let match;
+    
+    while ((match = jsonScriptRegex.exec(pageContent)) !== null) {
+        try {
+            const scriptContent = match[1].trim();
+            const jsonMatch = scriptContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const jsonData = JSON.parse(jsonMatch[0]);
+                if (jsonData.prices || jsonData.gold || jsonData.data) {
+                    const dataArray = jsonData.prices || jsonData.gold || jsonData.data;
+                    if (Array.isArray(dataArray)) {
+                        dataArray.forEach(item => {
+                            if (item.name && item.price) {
+                                prices.push({
+                                    name: item.name,
+                                    price: parseFloat(item.price) || 0
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+        } catch (e) {
+            // Continue
+        }
+    }
+    
+    // Method 2: Extract from HTML
+    if (prices.length === 0) {
+        const tableRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
+        let tableMatch;
+        
+        while ((tableMatch = tableRegex.exec(pageContent)) !== null) {
+            const row = tableMatch[0];
+            const cellRegex = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/g;
+            const cells = [];
+            let cellMatch;
+            
+            while ((cellMatch = cellRegex.exec(row)) !== null) {
+                const cellText = cellMatch[1].replace(/<[^>]+>/g, '').trim();
+                cells.push(cellText);
+            }
+            
+            if (cells.length >= 2) {
+                const name = cells[0];
+                const price = parseFloat(cells[1].replace(/,/g, ''));
+                
+                if (name && !isNaN(price) && price > 0) {
+                    prices.push({ name, price });
+                }
+            }
+        }
+    }
+    
+    return prices;
+}
+
+// Parse crypto prices from page content
+function parseCryptoPrices(pageContent) {
+    const prices = [];
+    
+    // Method 1: Try JSON data
+    const jsonScriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/g;
+    let match;
+    
+    while ((match = jsonScriptRegex.exec(pageContent)) !== null) {
+        try {
+            const scriptContent = match[1].trim();
+            const jsonMatch = scriptContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const jsonData = JSON.parse(jsonMatch[0]);
+                if (jsonData.prices || jsonData.crypto || jsonData.data) {
+                    const dataArray = jsonData.prices || jsonData.crypto || jsonData.data;
+                    if (Array.isArray(dataArray)) {
+                        dataArray.forEach(item => {
+                            if (item.name && (item.price || item.price_usd)) {
+                                prices.push({
+                                    name: item.name,
+                                    symbol: item.symbol || '',
+                                    price: parseFloat(item.price || item.price_usd) || 0,
+                                    price_syp: item.price_syp ? parseFloat(item.price_syp) : null
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+        } catch (e) {
+            // Continue
+        }
+    }
+    
+    // Method 2: Extract from HTML
+    if (prices.length === 0) {
+        const tableRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
+        let tableMatch;
+        
+        while ((tableMatch = tableRegex.exec(pageContent)) !== null) {
+            const row = tableMatch[0];
+            const cellRegex = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/g;
+            const cells = [];
+            let cellMatch;
+            
+            while ((cellMatch = cellRegex.exec(row)) !== null) {
+                const cellText = cellMatch[1].replace(/<[^>]+>/g, '').trim();
+                cells.push(cellText);
+            }
+            
+            if (cells.length >= 2) {
+                const name = cells[0];
+                const symbol = cells[1] || '';
+                const price = parseFloat(cells[2]?.replace(/,/g, '').replace('$', '') || 0);
+                
+                if (name && !isNaN(price) && price > 0) {
+                    prices.push({
+                        name,
+                        symbol,
+                        price,
+                        price_syp: cells[3] ? parseFloat(cells[3].replace(/,/g, '')) : null
+                    });
+                }
+            }
+        }
+    }
+    
+    return prices;
+}
+
+// ===== Main Functions =====
+
+// Fetch currencies using Puppeteer
+async function fetchCurrencies(page) {
     try {
         console.log('📊 Fetching currencies...');
         
-        const response = await fetchWithRetry(`${BASE_URL}/currencies`);
+        await page.goto(`${BASE_URL}/currencies`, {
+            waitUntil: 'networkidle2',
+            timeout: 60000
+        });
         
-        const rates = parseCurrencies(response.data);
+        // Wait a bit more for dynamic content
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        const content = await page.content();
+        const rates = parseCurrencies(content);
         
         const data = {
             lastUpdate: getTimestamp(),
@@ -296,7 +263,6 @@ async function fetchCurrencies() {
     } catch (error) {
         console.error('❌ Error fetching currencies:', error.message);
         
-        // Keep existing data if fetch fails
         if (fs.existsSync('data/currencies.json')) {
             console.log('📌 Keeping existing currencies data');
             return 0;
@@ -306,14 +272,20 @@ async function fetchCurrencies() {
     }
 }
 
-// Fetch gold prices
-async function fetchGold() {
+// Fetch gold prices using Puppeteer
+async function fetchGold(page) {
     try {
         console.log('🥇 Fetching gold prices...');
         
-        const response = await fetchWithRetry(`${BASE_URL}/gold`);
+        await page.goto(`${BASE_URL}/gold`, {
+            waitUntil: 'networkidle2',
+            timeout: 60000
+        });
         
-        const prices = parseGoldPrices(response.data);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        const content = await page.content();
+        const prices = parseGoldPrices(content);
         
         const data = {
             lastUpdate: getTimestamp(),
@@ -329,7 +301,6 @@ async function fetchGold() {
     } catch (error) {
         console.error('❌ Error fetching gold prices:', error.message);
         
-        // Keep existing data if fetch fails
         if (fs.existsSync('data/gold.json')) {
             console.log('📌 Keeping existing gold data');
             return 0;
@@ -339,14 +310,20 @@ async function fetchGold() {
     }
 }
 
-// Fetch crypto prices
-async function fetchCrypto() {
+// Fetch crypto prices using Puppeteer
+async function fetchCrypto(page) {
     try {
         console.log('₿ Fetching crypto prices...');
         
-        const response = await fetchWithRetry(`${BASE_URL}/crypto`);
+        await page.goto(`${BASE_URL}/crypto`, {
+            waitUntil: 'networkidle2',
+            timeout: 60000
+        });
         
-        const prices = parseCryptoPrices(response.data);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        const content = await page.content();
+        const prices = parseCryptoPrices(content);
         
         const data = {
             lastUpdate: getTimestamp(),
@@ -362,7 +339,6 @@ async function fetchCrypto() {
     } catch (error) {
         console.error('❌ Error fetching crypto prices:', error.message);
         
-        // Keep existing data if fetch fails
         if (fs.existsSync('data/crypto.json')) {
             console.log('📌 Keeping existing crypto data');
             return 0;
@@ -377,43 +353,118 @@ async function main() {
     console.log('🚀 Starting data fetch...');
     console.log('='.repeat(50));
     
-    // Get cookies first
-    console.log('🍪 Fetching cookies...');
-    await getCookies();
-    if (cookies) {
-        console.log('✅ Cookies obtained');
-    }
+    let browser;
     
-    // Fetch all data in parallel
-    const results = await Promise.all([
-        fetchCurrencies(),
-        fetchGold(),
-        fetchCrypto()
-    ]);
-    
-    const [currenciesCount, goldCount, cryptoCount] = results;
-    
-    console.log('='.repeat(50));
-    console.log('✨ All data fetch completed!');
-    console.log(`📊 Currencies: ${currenciesCount}`);
-    console.log(`🥇 Gold items: ${goldCount}`);
-    console.log(`₿ Crypto currencies: ${cryptoCount}`);
-    console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
-    
-    // Exit successfully even if no new data was fetched
-    // (keeping existing data is not a failure)
-    const totalFetched = currenciesCount + goldCount + cryptoCount;
-    if (totalFetched === 0) {
-        console.log('⚠️ Warning: No new data was fetched (existing data kept)');
+    try {
+        // Launch browser
+        console.log('🌐 Launching browser...');
+        
+        // Try to find Chrome executable
+        let launchOptions = {
+            headless: 'new',
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu'
+            ]
+        };
+        
+        // In production (GitHub Actions), use Chrome from path
+        if (process.env.NODE_ENV === 'production') {
+            // GitHub Actions will have Chrome installed
+            launchOptions.executablePath = '/usr/bin/google-chrome';
+        } else {
+            // Try to find local Chrome
+            const possiblePaths = [
+                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+                process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
+                process.env.PROGRAMFILES + '\\Google\\Chrome\\Application\\chrome.exe'
+            ];
+            
+            for (const chromePath of possiblePaths) {
+                if (require('fs').existsSync(chromePath)) {
+                    console.log(`✅ Found Chrome at: ${chromePath}`);
+                    launchOptions.executablePath = chromePath;
+                    break;
+                }
+            }
+            
+            if (!launchOptions.executablePath) {
+                console.log('⚠️  Using Puppeteer bundled browser');
+            }
+        }
+        
+        browser = await puppeteer.launch(launchOptions);
+        
+        const page = await browser.newPage();
+        
+        // Set viewport
+        await page.setViewport({ width: 1920, height: 1080 });
+        
+        // Set user agent
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        
+        // Set extra headers
+        await page.setExtraHTTPHeaders({
+            'Accept-Language': 'ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Referer': 'https://www.google.com/',
+            'Origin': 'https://sp-today.com'
+        });
+        
+        console.log('✅ Browser ready');
+        
+        // Visit homepage first to establish session
+        console.log('🏠 Visiting homepage...');
+        await page.goto(BASE_URL, {
+            waitUntil: 'networkidle2',
+            timeout: 60000
+        });
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('✅ Homepage loaded');
+        
+        // Fetch all data
+        const results = await Promise.all([
+            fetchCurrencies(page),
+            fetchGold(page),
+            fetchCrypto(page)
+        ]);
+        
+        const [currenciesCount, goldCount, cryptoCount] = results;
+        
+        console.log('='.repeat(50));
+        console.log('✨ All data fetch completed!');
+        console.log(`📊 Currencies: ${currenciesCount}`);
+        console.log(`🥇 Gold items: ${goldCount}`);
+        console.log(`₿ Crypto currencies: ${cryptoCount}`);
+        console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
+        
+        const totalFetched = currenciesCount + goldCount + cryptoCount;
+        if (totalFetched === 0) {
+            console.log('⚠️  Warning: No new data was fetched (existing data kept)');
+        }
+        
+    } catch (error) {
+        console.error('💥 Fatal error:', error);
+        process.exit(1);
+    } finally {
+        if (browser) {
+            await browser.close();
+            console.log('🔒 Browser closed');
+        }
     }
 }
 
-// Run the script
+// Run script
 if (require.main === module) {
-    main().catch(error => {
-        console.error('💥 Fatal error:', error);
-        process.exit(1);
-    });
+    main();
 }
 
 module.exports = {
