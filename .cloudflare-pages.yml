@@ -1,0 +1,5 @@
+# Cloudflare Pages Build Configuration
+# This is a static site - no build command needed
+
+# Cloudflare Pages will automatically serve the static files
+# No build process is required for this project
