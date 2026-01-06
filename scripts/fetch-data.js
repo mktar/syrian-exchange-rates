@@ -13,78 +13,176 @@ function getTimestamp() {
     return Date.now();
 }
 
-// Parse currency prices
+// Parse currency prices from sp-today.com
 function parseCurrencies(html) {
     const $ = cheerio.load(html);
     const rates = [];
     
-    // Find currency table rows
-    $('table tbody tr').each((index, element) => {
+    // Try multiple selectors for currency tables
+    // The website structure might change, so we try different approaches
+    
+    // Method 1: Table with specific class
+    $('table tbody tr, .currency-table tr, .rates-table tr').each((index, element) => {
         const $row = $(element);
-        const cells = $row.find('td');
+        const cells = $row.find('td, div.currency-cell');
         
         if (cells.length >= 3) {
             const name = $(cells[0]).text().trim();
             const buy = $(cells[1]).text().trim().replace(/,/g, '');
             const sell = $(cells[2]).text().trim().replace(/,/g, '');
             
-            if (name && buy && sell) {
+            // Skip if essential data is missing
+            if (!name || !buy || !sell) return;
+            if (name === '' || buy === '' || sell === '') return;
+            
+            // Parse numbers
+            const buyPrice = parseFloat(buy);
+            const sellPrice = parseFloat(sell);
+            
+            if (!isNaN(buyPrice) && !isNaN(sellPrice)) {
                 rates.push({
                     name: name,
-                    buy: parseFloat(buy),
-                    sell: parseFloat(sell)
+                    buy: buyPrice,
+                    sell: sellPrice
                 });
             }
         }
     });
     
+    // Method 2: If table parsing fails, try card-based layout
+    if (rates.length === 0) {
+        $('.currency-card, .rate-card, .price-card').each((index, element) => {
+            const $card = $(element);
+            const name = $card.find('.name, .currency-name, h3, h4').first().text().trim();
+            const buy = $card.find('.buy, .buy-price, .rate-buy').first().text().trim().replace(/,/g, '');
+            const sell = $card.find('.sell, .sell-price, .rate-sell').first().text().trim().replace(/,/g, '');
+            
+            if (name && buy && sell) {
+                const buyPrice = parseFloat(buy);
+                const sellPrice = parseFloat(sell);
+                
+                if (!isNaN(buyPrice) && !isNaN(sellPrice)) {
+                    rates.push({
+                        name: name,
+                        buy: buyPrice,
+                        sell: sellPrice
+                    });
+                }
+            }
+        });
+    }
+    
     return rates;
 }
 
-// Parse gold prices
+// Parse gold prices from sp-today.com
 function parseGoldPrices(html) {
     const $ = cheerio.load(html);
     const prices = [];
     
-    // Find gold price elements
-    $('.price-item, .gold-price, .currency-row').each((index, element) => {
-        const $item = $(element);
-        const name = $item.find('.name, .title, h3, h4').first().text().trim();
-        const price = $item.find('.price, .value, .amount').first().text().trim().replace(/,/g, '');
+    // Try multiple selectors for gold prices
+    
+    // Method 1: Table rows
+    $('table tbody tr, .gold-table tr').each((index, element) => {
+        const $row = $(element);
+        const cells = $row.find('td');
         
-        if (name && price) {
-            prices.push({
-                name: name,
-                price: parseFloat(price)
-            });
+        if (cells.length >= 2) {
+            const name = $(cells[0]).text().trim();
+            const price = $(cells[1]).text().trim().replace(/,/g, '');
+            
+            if (name && price) {
+                const priceNum = parseFloat(price);
+                if (!isNaN(priceNum)) {
+                    prices.push({
+                        name: name,
+                        price: priceNum
+                    });
+                }
+            }
         }
     });
+    
+    // Method 2: Card-based layout
+    if (prices.length === 0) {
+        $('.gold-card, .price-item, .gold-price-item').each((index, element) => {
+            const $item = $(element);
+            const name = $item.find('.name, .title, h3, h4').first().text().trim();
+            const price = $item.find('.price, .value, .amount').first().text().trim().replace(/,/g, '');
+            
+            if (name && price) {
+                const priceNum = parseFloat(price);
+                if (!isNaN(priceNum)) {
+                    prices.push({
+                        name: name,
+                        price: priceNum
+                    });
+                }
+            }
+        });
+    }
     
     return prices;
 }
 
-// Parse crypto prices
+// Parse crypto prices from sp-today.com
 function parseCryptoPrices(html) {
     const $ = cheerio.load(html);
     const prices = [];
     
-    // Find crypto price elements
-    $('.crypto-row, .currency-item, .price-row').each((index, element) => {
-        const $item = $(element);
-        const name = $item.find('.name, .title, h3, h4').first().text().trim();
-        const symbol = $item.find('.symbol, .code').first().text().trim();
-        const price = $item.find('.price, .value, .amount').first().text().trim().replace(/,/g, '').replace('$', '');
-        const priceSYP = $item.find('.syp-price, .syrian-price').first().text().trim().replace(/,/g, '');
+    // Try multiple selectors for crypto prices
+    
+    // Method 1: Table rows
+    $('table tbody tr, .crypto-table tr').each((index, element) => {
+        const $row = $(element);
+        const cells = $row.find('td');
         
-        if (name && price) {
-            prices.push({
-                name: name,
-                symbol: symbol || '',
-                price: parseFloat(price),
-                price_syp: priceSYP ? parseFloat(priceSYP) : parseFloat(price) * 12500 // Default to USD * 12500
-            });
+        if (cells.length >= 3) {
+            const name = $(cells[0]).text().trim();
+            const symbol = $(cells[1]).text().trim();
+            const price = $(cells[2]).text().trim().replace(/,/g, '').replace('$', '');
+            const priceSYP = $(cells[3]).text().trim().replace(/,/g, '');
+            
+            if (name && price) {
+                const priceNum = parseFloat(price);
+                const sypPrice = priceSYP ? parseFloat(priceSYP) : null;
+                
+                if (!isNaN(priceNum)) {
+                    prices.push({
+                        name: name,
+                        symbol: symbol || '',
+                        price: priceNum,
+                        price_syp: sypPrice
+                    });
+                }
+            }
         }
     });
+    
+    // Method 2: Card-based layout
+    if (prices.length === 0) {
+        $('.crypto-card, .crypto-item, .currency-card').each((index, element) => {
+            const $item = $(element);
+            const name = $item.find('.name, .title, h3, h4').first().text().trim();
+            const symbol = $item.find('.symbol, .code').first().text().trim();
+            const price = $item.find('.price, .value, .amount').first().text().trim().replace(/,/g, '').replace('$', '');
+            const priceSYP = $item.find('.syp-price, .syrian-price').first().text().trim().replace(/,/g, '');
+            
+            if (name && price) {
+                const priceNum = parseFloat(price);
+                const sypPrice = priceSYP ? parseFloat(priceSYP) : null;
+                
+                if (!isNaN(priceNum)) {
+                    prices.push({
+                        name: name,
+                        symbol: symbol || '',
+                        price: priceNum,
+                        price_syp: sypPrice
+                    });
+                }
+            }
+        });
+    }
     
     return prices;
 }
@@ -111,8 +209,11 @@ async function fetchCurrencies() {
         
         const response = await axios.get(`${BASE_URL}/currencies`, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'ar,en-US;q=0.7,en;q=0.3'
+            },
+            timeout: 30000
         });
         
         const rates = parseCurrencies(response.data);
@@ -126,12 +227,18 @@ async function fetchCurrencies() {
         saveJSON('data/currencies.json', data);
         console.log(`✅ Currencies updated: ${rates.length} currencies`);
         
+        return rates.length;
+        
     } catch (error) {
         console.error('❌ Error fetching currencies:', error.message);
+        
         // Keep existing data if fetch fails
         if (fs.existsSync('data/currencies.json')) {
             console.log('📌 Keeping existing currencies data');
+            return 0;
         }
+        
+        return 0;
     }
 }
 
@@ -142,8 +249,11 @@ async function fetchGold() {
         
         const response = await axios.get(`${BASE_URL}/gold`, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'ar,en-US;q=0.7,en;q=0.3'
+            },
+            timeout: 30000
         });
         
         const prices = parseGoldPrices(response.data);
@@ -157,11 +267,18 @@ async function fetchGold() {
         saveJSON('data/gold.json', data);
         console.log(`✅ Gold prices updated: ${prices.length} items`);
         
+        return prices.length;
+        
     } catch (error) {
         console.error('❌ Error fetching gold prices:', error.message);
+        
+        // Keep existing data if fetch fails
         if (fs.existsSync('data/gold.json')) {
             console.log('📌 Keeping existing gold data');
+            return 0;
         }
+        
+        return 0;
     }
 }
 
@@ -172,8 +289,11 @@ async function fetchCrypto() {
         
         const response = await axios.get(`${BASE_URL}/crypto`, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'ar,en-US;q=0.7,en;q=0.3'
+            },
+            timeout: 30000
         });
         
         const prices = parseCryptoPrices(response.data);
@@ -187,11 +307,18 @@ async function fetchCrypto() {
         saveJSON('data/crypto.json', data);
         console.log(`✅ Crypto prices updated: ${prices.length} currencies`);
         
+        return prices.length;
+        
     } catch (error) {
         console.error('❌ Error fetching crypto prices:', error.message);
+        
+        // Keep existing data if fetch fails
         if (fs.existsSync('data/crypto.json')) {
             console.log('📌 Keeping existing crypto data');
+            return 0;
         }
+        
+        return 0;
     }
 }
 
@@ -200,21 +327,36 @@ async function main() {
     console.log('🚀 Starting data fetch...');
     console.log('='.repeat(50));
     
-    // Fetch all data
-    await Promise.all([
+    // Fetch all data in parallel
+    const results = await Promise.all([
         fetchCurrencies(),
         fetchGold(),
         fetchCrypto()
     ]);
     
+    const [currenciesCount, goldCount, cryptoCount] = results;
+    
     console.log('='.repeat(50));
     console.log('✨ All data fetch completed!');
+    console.log(`📊 Currencies: ${currenciesCount}`);
+    console.log(`🥇 Gold items: ${goldCount}`);
+    console.log(`₿ Crypto currencies: ${cryptoCount}`);
     console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
+    
+    // Exit with error code if no data was fetched
+    const totalFetched = currenciesCount + goldCount + cryptoCount;
+    if (totalFetched === 0) {
+        console.log('⚠️ Warning: No new data was fetched');
+        process.exit(1);
+    }
 }
 
 // Run the script
 if (require.main === module) {
-    main().catch(console.error);
+    main().catch(error => {
+        console.error('💥 Fatal error:', error);
+        process.exit(1);
+    });
 }
 
 module.exports = {
