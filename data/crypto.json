@@ -1,76 +1,76 @@
 {
-  "lastUpdate": 1768113068528,
+  "lastUpdate": 1768156109720,
   "source": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether,binancecoin,solana,ripple,dogecoin,cardano,tron,avalanche-2&vs_currencies=usd&include_24hr_change=true",
-  "fetched_at": "2026-01-11T06:31:08.528Z",
+  "fetched_at": "2026-01-11T18:28:29.720Z",
   "prices": {
     "AVAX": {
       "name": "أفالانش",
       "symbol": "AVAX",
-      "price_usd": 13.74,
-      "change_24h": 0.59,
+      "price_usd": 13.87,
+      "change_24h": 0.2,
       "trend": "up"
     },
     "BNB": {
       "name": "بينانس كوين",
       "symbol": "BNB",
-      "price_usd": 910.96,
-      "change_24h": 0.5,
-      "trend": "up"
+      "price_usd": 905.05,
+      "change_24h": -0.42,
+      "trend": "down"
     },
     "BTC": {
       "name": "بيتكوين",
       "symbol": "BTC",
-      "price_usd": 90554,
-      "change_24h": 0.19,
+      "price_usd": 90768,
+      "change_24h": 0.37,
       "trend": "up"
     },
     "ADA": {
       "name": "كاردانو",
       "symbol": "ADA",
-      "price_usd": 0.389035,
-      "change_24h": 0.87,
+      "price_usd": 0.392086,
+      "change_24h": 0.59,
       "trend": "up"
     },
     "DOGE": {
       "name": "دوجكوين",
       "symbol": "DOGE",
-      "price_usd": 0.139061,
-      "change_24h": -0.36,
+      "price_usd": 0.138046,
+      "change_24h": -1.23,
       "trend": "down"
     },
     "ETH": {
       "name": "إيثريوم",
       "symbol": "ETH",
-      "price_usd": 3089.93,
-      "change_24h": 0.3,
+      "price_usd": 3119.34,
+      "change_24h": 0.98,
       "trend": "up"
     },
     "XRP": {
       "name": "ريبل",
       "symbol": "XRP",
       "price_usd": 2.09,
-      "change_24h": -0.02,
+      "change_24h": -0.19,
       "trend": "down"
     },
     "SOL": {
       "name": "سولانا",
       "symbol": "SOL",
-      "price_usd": 135.85,
-      "change_24h": 0.05,
+      "price_usd": 139.07,
+      "change_24h": 2.28,
       "trend": "up"
     },
     "USDT": {
       "name": "تيثر",
       "symbol": "USDT",
-      "price_usd": 0.998859,
-      "change_24h": 0.01,
-      "trend": "up"
+      "price_usd": 0.998639,
+      "change_24h": -0.02,
+      "trend": "down"
     },
     "TRX": {
       "name": "ترون",
       "symbol": "TRX",
-      "price_usd": 0.300387,
-      "change_24h": 0.8,
+      "price_usd": 0.301449,
+      "change_24h": 0.72,
       "trend": "up"
     }
   }
